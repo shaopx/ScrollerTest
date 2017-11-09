@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="com.spx.scrollertest.MainActivity">
+
+    <com.spx.scrollertest.MyLinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <ImageView
+            android:layout_width="200dp"
+            android:layout_height="300dp"
+            android:background="#33ff0000"
+            android:layout_margin="10dp"
+            android:layout_gravity="center_horizontal"/>
+
+        <ImageView
+            android:layout_width="200dp"
+            android:layout_height="300dp"
+            android:background="#33ff00ff"/>
+
+        <ImageView
+            android:layout_width="200dp"
+            android:layout_height="300dp"
+            android:background="#33ffff00"
+            android:layout_margin="10dp"
+            android:layout_gravity="center_horizontal"/>
+
+        <ImageView
+            android:layout_width="200dp"
+            android:layout_height="300dp"
+            android:background="#330000ff"/>
+
+        <ImageView
+            android:layout_width="200dp"
+            android:layout_height="300dp"
+            android:background="#3300ffff"
+            android:layout_margin="10dp"
+            android:layout_gravity="center_horizontal"/>
+
+    </com.spx.scrollertest.MyLinearLayout>
+
+</RelativeLayout>
