@@ -7,12 +7,16 @@ import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.support.annotation.Nullable;
+import android.support.v4.view.ViewCompat;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
+import android.view.ScaleGestureDetector;
 import android.view.VelocityTracker;
 import android.view.ViewConfiguration;
+import android.view.ViewGroup;
 import android.view.ViewParent;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.OverScroller;
 
@@ -21,8 +25,15 @@ import android.widget.OverScroller;
  * @date 2017/11/9.
  */
 
-public class MyLinearLayout extends LinearLayout {
+public class MyLinearLayout extends android.support.v7.widget.AppCompatImageView {
     private static final String TAG = "MyLinearLayout";
+    /**
+     * Sentinel value for no current active pointer.
+     * Used by {@link #mActivePointerId}.
+     */
+    private static final int INVALID_POINTER = -1;
+
+
     private VelocityTracker mVelocityTracker;
 
     private Context mContext;
@@ -33,9 +44,32 @@ public class MyLinearLayout extends LinearLayout {
 
     private OverScroller mScroller;
 
-    private Matrix matrix = new Matrix();
     private Bitmap mBitmap;
     private Paint mPait = new Paint();
+
+    private float mCurrentScale = 1f;
+    private Matrix mCurrentMatrix;
+    private Matrix mTranslateMatrix;
+    private Matrix mScaleMtrix;
+    private int mTranslateX = 0;
+    private float mMidX;
+    private float mMidY;
+    private int mScrollY;
+
+    /**
+     * Position of the last motion event.
+     */
+    private int mLastMotionY;
+
+    /**
+     * ID of the active pointer. This is used to retain consistency during
+     * drags/flings if multiple pointers are used.
+     */
+    private int mActivePointerId = INVALID_POINTER;
+
+    private boolean mIsBeingDragged = false;
+
+    private ScaleGestureDetector mScaleDetector;
 
     public MyLinearLayout(Context context) {
         super(context);
@@ -54,9 +88,13 @@ public class MyLinearLayout extends LinearLayout {
 
     private void init(Context context) {
         mContext = context;
+        mCurrentMatrix = new Matrix();
+        mTranslateMatrix = new Matrix();
+        mScaleMtrix = new Matrix();
+        setLayerType(ViewCompat.LAYER_TYPE_SOFTWARE, mPait);
         mScroller = new OverScroller(getContext());
         setFocusable(true);
-        setDescendantFocusability(FOCUS_AFTER_DESCENDANTS);
+//        setDescendantFocusability(FOCUS_AFTER_DESCENDANTS);
         setWillNotDraw(false);
         final ViewConfiguration configuration = ViewConfiguration.get(mContext);
         mTouchSlop = configuration.getScaledTouchSlop();
@@ -67,8 +105,72 @@ public class MyLinearLayout extends LinearLayout {
 //        mVerticalScrollFactor = configuration.getScaledVerticalScrollFactor();
 
         setWillNotCacheDrawing(false);
+//        mCurrentMatrix.setTranslate(mTranslateX, 0);
+//        mCurrentMatrix.postTranslate(mTranslateX, 0);
+//        mBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.timg);
 
-        mBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.timg);
+        ScaleGestureDetector.OnScaleGestureListener scaleListener = new ScaleGestureDetector
+                .SimpleOnScaleGestureListener() {
+
+            @Override
+            public boolean onScale(ScaleGestureDetector detector) {
+                float scaleFactor = detector.getScaleFactor();
+                Log.d(TAG, "onScale: scaleFactor:"+scaleFactor);
+                setScale(scaleFactor);
+
+                return true;
+            }
+
+            @Override
+            public void onScaleEnd(ScaleGestureDetector detector) {
+                super.onScaleEnd(detector);
+
+                if (mCurrentScale < 1f) {
+                    reset();
+                }
+//                checkBorder();
+            }
+        };
+        mScaleDetector = new ScaleGestureDetector(getContext(), scaleListener);
+    }
+
+    /**
+     * Resets the zoom of the attached image.
+     * This has no effect if the image has been destroyed
+     */
+    private void reset() {
+        mCurrentMatrix.reset();
+        mCurrentScale = 1f;
+        invalidate();
+    }
+
+    @Override
+    protected void onFinishInflate() {
+        super.onFinishInflate();
+        Log.d(TAG, "onFinishInflate: width:" + getWidth() + ", height:" + getHeight());
+    }
+
+    @Override
+    protected void onLayout(boolean changed, int l, int t, int r, int b) {
+//        super.onLayout(changed, l, t, r, b);
+        Log.d(TAG, "onLayout: width:" + getWidth() + ", height:" + getHeight() + ", r:" + r + ", b:" + b);
+    }
+
+    public void setScale(float scaleFactor) {
+        mCurrentScale *= scaleFactor;
+        if (mMidX == 0f) {
+            mMidX = getWidth() / 2f;
+        }
+        if (mMidY == 0f) {
+            mMidY = getHeight() / 2f;
+        }
+
+        invalidate();
+    }
+
+    public void setBitmap(Bitmap bitmap) {
+        this.mBitmap = bitmap;
+        invalidate();
     }
 
     private void initVelocityTrackerIfNotExists() {
@@ -80,6 +182,12 @@ public class MyLinearLayout extends LinearLayout {
     @Override
     public boolean onTouchEvent(MotionEvent ev) {
         initVelocityTrackerIfNotExists();
+        Log.d(TAG, "onTouchEvent: ev:"+ev);
+
+        if(ev.getPointerCount()>1){
+           return mScaleDetector.onTouchEvent(ev);
+        }
+
 
         MotionEvent vtev = MotionEvent.obtain(ev);
 
@@ -88,20 +196,73 @@ public class MyLinearLayout extends LinearLayout {
 
         switch (actionMasked) {
             case MotionEvent.ACTION_DOWN: {
-                if (getChildCount() == 0) {
-                    return false;
+
+                if ((mIsBeingDragged = !mScroller.isFinished())) {
+                    final ViewParent parent = getParent();
+                    if (parent != null) {
+                        parent.requestDisallowInterceptTouchEvent(true);
+                    }
                 }
+
+                if (!mScroller.isFinished()) {
+                    mScroller.abortAnimation();
+                }
+
+                // Remember where the motion event started
+                mLastMotionY = (int) ev.getY();
+                mActivePointerId = ev.getPointerId(0);
 
             }
             case MotionEvent.ACTION_MOVE:
 
+
+                final int activePointerIndex = ev.findPointerIndex(mActivePointerId);
+                if (activePointerIndex == -1) {
+                    Log.e(TAG, "Invalid pointerId=" + mActivePointerId + " in onTouchEvent");
+                    break;
+                }
+
+                final int y = (int) ev.getY(activePointerIndex);
+                int deltaY = mLastMotionY - y;
+                Log.d(TAG, "onTouchEvent: ACTION_MOVE  deltaY:" + deltaY + ", mScrollY:" + mScrollY);
+
+                if (!mIsBeingDragged && Math.abs(deltaY) > mTouchSlop) {
+                    final ViewParent parent = getParent();
+                    if (parent != null) {
+                        parent.requestDisallowInterceptTouchEvent(true);
+                    }
+                    mIsBeingDragged = true;
+                    if (deltaY > 0) {
+                        deltaY -= mTouchSlop;
+                    } else {
+                        deltaY += mTouchSlop;
+                    }
+                }
+
+
+                if (mIsBeingDragged) {
+                    // Scroll to follow the motion event
+                    mLastMotionY = y;
+
+                    if (mScrollY <= 0 && deltaY < 0) {
+                        mScrollY = 0;
+                    } else if (isToEnd(deltaY)) {
+
+                    } else {
+                        mScrollY += deltaY;
+                    }
+
+
+                }
+
+                invalidate();
 
                 break;
             case MotionEvent.ACTION_UP:
                 final VelocityTracker velocityTracker = mVelocityTracker;
                 velocityTracker.computeCurrentVelocity(1000, mMaximumVelocity);
                 int initialVelocity = (int) velocityTracker.getYVelocity();
-                Log.d(TAG, "onTouchEvent: mMinimumVelocity:" + mMinimumVelocity + ", initialVelocity:" + initialVelocity+", curY:"+mScroller.getCurrY());
+                Log.d(TAG, "onTouchEvent: mMinimumVelocity:" + mMinimumVelocity + ", initialVelocity:" + initialVelocity + ", curY:" + mScroller.getCurrY());
 
                 if ((Math.abs(initialVelocity) > mMinimumVelocity)) {
                     fling(-initialVelocity);
@@ -128,9 +289,17 @@ public class MyLinearLayout extends LinearLayout {
         return true;
     }
 
+    private boolean isToEnd(int deltaY) {
+        if ((mScrollY+deltaY) >= (mBitmap.getHeight() - getHeight()) && deltaY > 0) {
+            mScrollY = mBitmap.getHeight() - getHeight();
+            return true;
+        }
+        return false;
+    }
+
     private void fling(int initialVelocity) {
         Log.d(TAG, "fling: initialVelocity:" + initialVelocity);
-        mScroller.fling(0, getScrollY(), 0, initialVelocity, 0, 0, 50, 915);
+        mScroller.fling(0, mScrollY, 0, initialVelocity, 0, 0, 0, mBitmap.getHeight()-getHeight());
         invalidate();
     }
 
@@ -138,21 +307,28 @@ public class MyLinearLayout extends LinearLayout {
     public void computeScroll() {
         if (mScroller.computeScrollOffset()) {
             Log.d(TAG, "computeScroll: mScroller.getCurrY():" + mScroller.getCurrY());
-//            scrollTo(mScroller.getCurrX(),
-//                    mScroller.getCurrY());
-            matrix.setTranslate(0, -mScroller.getCurrY());
+            mScrollY = mScroller.getCurrY();
             postInvalidate();
         }
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
+
         super.onDraw(canvas);
-        canvas.save();
-        canvas.concat(matrix);
+        if (mBitmap == null) {
+            return;
+        }
+        Log.d(TAG, "onDraw: mCurrentScale:" + mCurrentScale + ", getHeight:" + getHeight() + ", bitmap.h:" + mBitmap.getHeight());
+        int saveCount = canvas.save();
 
-        canvas.drawBitmap(mBitmap, matrix, mPait);
+        mCurrentMatrix.reset();
+        mCurrentMatrix.postTranslate(mTranslateX, -mScrollY);
+        mCurrentMatrix.postScale(mCurrentScale, mCurrentScale, mMidX, mMidY);
 
-        canvas.restore();
+
+        canvas.drawBitmap(mBitmap, mCurrentMatrix, null);
+
+        canvas.restoreToCount(saveCount);
     }
 }
