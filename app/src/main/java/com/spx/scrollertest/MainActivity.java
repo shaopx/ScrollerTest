@@ -7,6 +7,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.widget.ImageView;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.target.SimpleTarget;
@@ -14,7 +15,7 @@ import com.bumptech.glide.request.transition.Transition;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
-    MyImageview myImageview;
+    ImageView myImageview;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -24,12 +25,12 @@ public class MainActivity extends AppCompatActivity {
 //        String imageUrl = "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1510288427151&di=1e3c071b546dd0c0b3dcd067c6521886&imgtype=0&src=http%3A%2F%2Fc.hiphotos.baidu.com%2Fzhidao%2Fpic%2Fitem%2Ff9198618367adab4e8fd4a1e83d4b31c8701e4ba.jpg";
 //        String imageUrl = "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1510298447871&di=bde7aa0c2feb82ec3bff4a37e4ed13ac&imgtype=0&src=http%3A%2F%2Fimg5q.duitang.com%2Fuploads%2Fitem%2F201407%2F27%2F20140727020316_Q35Bj.jpeg";
         myImageview = findViewById(R.id.mylinearlayout);
-        myImageview.setScrollOutListener(new MyImageview.ScrollOutListener() {
-            @Override
-            public void onScrollOut() {
-                finish();
-            }
-        });
+//        myImageview.setScrollOutListener(new MyImageview.ScrollOutListener() {
+//            @Override
+//            public void onScrollOut() {
+//                finish();
+//            }
+//        });
         Glide.with(this).asBitmap().load(imageUrl).into(new SimpleTarget<Bitmap>() {
             @Override
             public void onResourceReady(Bitmap resource, Transition<? super Bitmap> transition) {
@@ -75,6 +76,6 @@ public class MainActivity extends AppCompatActivity {
         matrix.setScale(scale, scale);
         Bitmap bitmap2 = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
 
-        myImageview.setBitmap(bitmap2);
+        myImageview.setImageBitmap(bitmap);
     }
 }
