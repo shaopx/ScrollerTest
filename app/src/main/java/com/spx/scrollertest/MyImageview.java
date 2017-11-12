@@ -27,6 +27,8 @@ public class MyImageview extends android.support.v7.widget.AppCompatImageView {
     public static final float DOUBLE_TAB_SCALE = 1.5f;
     private static final long ANIMATE_BACK_DURATION = 200;
 
+    private int mScreenWidth = 0;
+
     public interface ScrollOutListener {
         void onScrollOut();
     }
@@ -76,8 +78,11 @@ public class MyImageview extends android.support.v7.widget.AppCompatImageView {
         init(context);
     }
 
+
     private void init(Context context) {
         mCurrentMatrix = new Matrix();
+
+        mScreenWidth = context.getResources().getDisplayMetrics().widthPixels;
 
         setLayerType(ViewCompat.LAYER_TYPE_SOFTWARE, mPait);
         mScroller = new OverScroller(getContext());
@@ -111,16 +116,31 @@ public class MyImageview extends android.support.v7.widget.AppCompatImageView {
 
             @Override
             public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
-                Log.d(TAG, "onScroll: mScrollX:" + mScrollX + ", mScrollY:" + mScrollY + ", distanceX:" + distanceX + ", distanceY:" + distanceY);
+                Log.d(TAG, "onScroll: mScrollX:" + mScrollX + ", mScrollY:" + mScrollY
+                        + ", distanceX:" + distanceX + ", distanceY:" + distanceY + ", mCurrentScale:" + mCurrentScale);
+                RectF rectF = getDisplayRect(mCurrentMatrix);
+                Log.d(TAG, "onScroll: getDisplayRect:" + rectF);
                 if ((mScrollY) > (mBitmap.getHeight() - getHeight() * 2 / 3)) {
                     onScrollOut();
                     return true;
                 }
 
 
-                if(mCurrentScale>1){
-//                    RectF rectF = getDisplayRect(mCurrentMatrix);
-//                    Log.d(TAG, "onScroll: rectF:" + rectF);
+                if (mCurrentScale > 1) {
+
+                    if (rectF.left >= 0 && distanceX < 0) {
+                        return true;
+                    }
+
+                    if (rectF.left - distanceX * mCurrentScale >= 0) {
+                        float maxLeftDistanceX = -(-rectF.left / mCurrentScale);
+                        mScrollX += maxLeftDistanceX;
+                    } else if (rectF.right <= mScreenWidth || rectF.right - distanceX * mCurrentScale <= mScreenWidth) {
+                        float maxLeftDistanceX = (rectF.right - mScreenWidth) / mCurrentScale;
+                        mScrollX += maxLeftDistanceX;
+                    } else {
+                        mScrollX += distanceX;
+                    }
 //                    if (rectF.left > 0) {
 //                        mScrollX = 0;
 //                    } else if (rectF.right < getWidth()*mCurrentScale) {
@@ -137,11 +157,16 @@ public class MyImageview extends android.support.v7.widget.AppCompatImageView {
 //                            mScrollX += distanceX;
 //                        }
 //                    }
-                    mScrollX += distanceX;
-                } else{
+
+                    mCurrentMatrix.reset();
+                    mCurrentMatrix.postTranslate(-mScrollX, -mScrollY);
+                    mCurrentMatrix.postScale(mCurrentScale, mCurrentScale, mMidX, mMidY);
+                    rectF = getDisplayRect(mCurrentMatrix);
+                    Log.d(TAG, "onScroll: result:" + rectF);
+
+                } else {
                     mScrollX = 0;
                 }
-
 
 
                 mScrollY += distanceY;
@@ -180,8 +205,13 @@ public class MyImageview extends android.support.v7.widget.AppCompatImageView {
             @Override
             public boolean onScale(ScaleGestureDetector detector) {
                 float scaleFactor = detector.getScaleFactor();
-                Log.d(TAG, "onScale: scaleFactor:" + scaleFactor);
+
                 setScale(scaleFactor);
+                Log.d(TAG, "onScale: scaleFactor:" + scaleFactor + ", mCurrentScale:" + mCurrentScale);
+
+                RectF rectF = getDisplayRect(mCurrentMatrix);
+                Log.d(TAG, "onScale: getDisplayRect:" + rectF);
+
 
                 return true;
             }
@@ -192,6 +222,20 @@ public class MyImageview extends android.support.v7.widget.AppCompatImageView {
 
                 if (mCurrentScale < 1f) {
                     reset();
+                } else {
+                    RectF rectF = getDisplayRect(mCurrentMatrix);
+                    Log.d(TAG, "onScale end: getDisplayRect:" + rectF +", mCurrentScale:"+mCurrentScale);
+                    if (rectF.left > 0) {
+                        float delta = rectF.left / mCurrentScale;
+                        Log.d(TAG, "onScaleEnd: delta_1:" + delta);
+                        mScrollX += delta;
+                        invalidate();
+                    } else if (rectF.right < mScreenWidth) {
+                        float delta = (mScreenWidth - rectF.right) / mCurrentScale;
+                        Log.d(TAG, "onScaleEnd: delta_2:" + delta);
+                        mScrollX -= delta;
+                        invalidate();
+                    }
                 }
             }
         };
@@ -270,6 +314,7 @@ public class MyImageview extends android.support.v7.widget.AppCompatImageView {
     private void reset() {
         mCurrentMatrix.reset();
         mCurrentScale = 1f;
+        mScrollX = 0;
         invalidate();
     }
 
@@ -292,8 +337,21 @@ public class MyImageview extends android.support.v7.widget.AppCompatImageView {
     }
 
     public void setBitmap(Bitmap bitmap) {
-        this.mBitmap = bitmap;
-        mMaxScrollY = bitmap.getHeight() - getHeight();
+        Matrix matrix = new Matrix();
+        int bitmapWidth = bitmap.getWidth();
+        int screenWidth = getResources().getDisplayMetrics().widthPixels;
+        float scale = 1f;
+        Log.d(TAG, "handleBitmap: screenWidth:" + screenWidth + ",bitmapWidth:" + bitmapWidth);
+        if (screenWidth > bitmapWidth) {
+            scale = 1f * screenWidth / bitmapWidth;
+        }
+        Log.d(TAG, "handleBitmap: scale:" + scale);
+
+        matrix.setScale(scale, scale);
+        Bitmap bitmap2 = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
+
+        this.mBitmap = bitmap2;
+        mMaxScrollY = bitmap2.getHeight() - getHeight();
         invalidate();
     }
 

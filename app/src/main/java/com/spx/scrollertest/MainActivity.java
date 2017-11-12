@@ -15,7 +15,7 @@ import com.bumptech.glide.request.transition.Transition;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
-    ImageView myImageview;
+    MyImageview myImageview;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -76,6 +76,12 @@ public class MainActivity extends AppCompatActivity {
         matrix.setScale(scale, scale);
         Bitmap bitmap2 = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
 
-        myImageview.setImageBitmap(bitmap);
+        myImageview.setBitmap(bitmap);
+        myImageview.setScrollOutListener(new MyImageview.ScrollOutListener() {
+            @Override
+            public void onScrollOut() {
+                finish();
+            }
+        });
     }
 }

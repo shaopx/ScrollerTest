@@ -9,14 +9,15 @@ import android.graphics.drawable.Drawable;
 import android.support.v4.view.ViewCompat;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.widget.ImageView;
 
-import com.github.chrisbanes.photoview.PhotoView;
+//import com.github.chrisbanes.photoview.PhotoView;
 
 /**
  * Created by shaopengxiang on 2017/11/10.
  */
 
-public class MyPhotoView extends PhotoView {
+public class MyPhotoView extends android.support.v7.widget.AppCompatImageView {
     private static final String TAG = "MyPhotoView";
     private Paint mPait = new Paint();
 

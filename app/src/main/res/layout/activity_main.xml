@@ -6,13 +6,13 @@
     android:layout_height="match_parent"
     tools:context="com.spx.scrollertest.MainActivity">
 
-    <com.spx.scrollertest.MyPhotoView
+    <com.spx.scrollertest.MyImageview
         android:id="@+id/mylinearlayout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="#000000">
 
 
-    </com.spx.scrollertest.MyPhotoView>
+    </com.spx.scrollertest.MyImageview>
 
 </RelativeLayout>
