@@ -125,6 +125,11 @@ public class MyImageview extends android.support.v7.widget.AppCompatImageView {
                     return true;
                 }
 
+                if (mScrollY < 0 && -mScrollY > getHeight() / 3) {
+                    onScrollOut();
+                    return true;
+                }
+
 
                 if (mCurrentScale > 1) {
 
@@ -205,6 +210,11 @@ public class MyImageview extends android.support.v7.widget.AppCompatImageView {
             @Override
             public boolean onScale(ScaleGestureDetector detector) {
                 float scaleFactor = detector.getScaleFactor();
+                if (mCurrentScale * scaleFactor < 1f) {
+                    mCurrentScale = 1f;
+                    invalidate();
+                    return true;
+                }
 
                 setScale(scaleFactor);
                 Log.d(TAG, "onScale: scaleFactor:" + scaleFactor + ", mCurrentScale:" + mCurrentScale);
@@ -224,7 +234,7 @@ public class MyImageview extends android.support.v7.widget.AppCompatImageView {
                     reset();
                 } else {
                     RectF rectF = getDisplayRect(mCurrentMatrix);
-                    Log.d(TAG, "onScale end: getDisplayRect:" + rectF +", mCurrentScale:"+mCurrentScale);
+                    Log.d(TAG, "onScale end: getDisplayRect:" + rectF + ", mCurrentScale:" + mCurrentScale);
                     if (rectF.left > 0) {
                         float delta = rectF.left / mCurrentScale;
                         Log.d(TAG, "onScaleEnd: delta_1:" + delta);
@@ -300,6 +310,20 @@ public class MyImageview extends android.support.v7.widget.AppCompatImageView {
         valueAnimator.start();
     }
 
+    private void animateDown() {
+        ValueAnimator valueAnimator = ValueAnimator.ofInt(mScrollY, 0);
+        valueAnimator.setDuration(ANIMATE_BACK_DURATION);
+        valueAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator animation) {
+                int scrollY = (int) animation.getAnimatedValue();
+                mScrollY = scrollY;
+                invalidate();
+            }
+        });
+        valueAnimator.start();
+    }
+
     private void onScrollOut() {
         Log.d(TAG, "onScrollOut: ...");
         if (scrollOutListener != null) {
@@ -312,7 +336,6 @@ public class MyImageview extends android.support.v7.widget.AppCompatImageView {
      * This has no effect if the image has been destroyed
      */
     private void reset() {
-        mCurrentMatrix.reset();
         mCurrentScale = 1f;
         mScrollX = 0;
         invalidate();
@@ -336,7 +359,9 @@ public class MyImageview extends android.support.v7.widget.AppCompatImageView {
         invalidate();
     }
 
-    public void setBitmap(Bitmap bitmap) {
+
+    @Override
+    public void setImageBitmap(Bitmap bitmap) {
         Matrix matrix = new Matrix();
         int bitmapWidth = bitmap.getWidth();
         int screenWidth = getResources().getDisplayMetrics().widthPixels;
@@ -358,9 +383,11 @@ public class MyImageview extends android.support.v7.widget.AppCompatImageView {
 
     @Override
     public boolean onTouchEvent(MotionEvent ev) {
+//        Log.d(TAG, "onTouchEvent: ev:"+ev);
         mScaleDetector.onTouchEvent(ev);
         if (!mScaleDetector.isInProgress()) {
             mScrollGestureDetector.onTouchEvent(ev);
+
         }
 
         if (ev.getAction() == MotionEvent.ACTION_UP) {
@@ -377,7 +404,12 @@ public class MyImageview extends android.support.v7.widget.AppCompatImageView {
             } else {
                 animateBack();
             }
-
+        } else if (mScrollY < 0) {
+            if (mScrollY < 0 && -mScrollY > getHeight() / 3) {
+                onScrollOut();
+            } else {
+                animateDown();
+            }
         }
     }
 
@@ -400,7 +432,7 @@ public class MyImageview extends android.support.v7.widget.AppCompatImageView {
     @Override
     protected void onDraw(Canvas canvas) {
 
-        super.onDraw(canvas);
+//        super.onDraw(canvas);
         if (mBitmap == null) {
             return;
         }

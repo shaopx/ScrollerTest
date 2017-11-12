@@ -43,40 +43,40 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void handleBitmap(Bitmap bitmap){
-        Matrix matrix = new Matrix();
-        int bitmapWidth = bitmap.getWidth();
-        int bitmapHeight = bitmap.getHeight();
-        Log.d(TAG, "handleBitmap: bitmapWidth:"+bitmapWidth+",bitmapHeight:"+bitmapHeight);
-
-        int screenWidth = getResources().getDisplayMetrics().widthPixels;
-        int screenHeight = getResources().getDisplayMetrics().heightPixels;
-        Log.d(TAG, "handleBitmap: screenWidth:"+screenWidth+",screenHeight:"+screenHeight);
-
-        DisplayMetrics dm = new DisplayMetrics();
-        getWindowManager().getDefaultDisplay().getMetrics(dm);
-        //应用区域
-        Rect outRect1 = new Rect();
-        getWindow().getDecorView().getWindowVisibleDisplayFrame(outRect1);
-        Log.d(TAG, "handleBitmap outRect1: "+outRect1);
-        int statusBar = dm.heightPixels - outRect1.height();  //状态栏高度=屏幕高度-应用区域高度
-        Log.e(TAG, "状态栏-方法4:" + statusBar);
+//        Matrix matrix = new Matrix();
+//        int bitmapWidth = bitmap.getWidth();
+//        int bitmapHeight = bitmap.getHeight();
+//        Log.d(TAG, "handleBitmap: bitmapWidth:"+bitmapWidth+",bitmapHeight:"+bitmapHeight);
+//
+//        int screenWidth = getResources().getDisplayMetrics().widthPixels;
+//        int screenHeight = getResources().getDisplayMetrics().heightPixels;
+//        Log.d(TAG, "handleBitmap: screenWidth:"+screenWidth+",screenHeight:"+screenHeight);
+//
+//        DisplayMetrics dm = new DisplayMetrics();
+//        getWindowManager().getDefaultDisplay().getMetrics(dm);
+//        //应用区域
+//        Rect outRect1 = new Rect();
+//        getWindow().getDecorView().getWindowVisibleDisplayFrame(outRect1);
+//        Log.d(TAG, "handleBitmap outRect1: "+outRect1);
+//        int statusBar = dm.heightPixels - outRect1.height();  //状态栏高度=屏幕高度-应用区域高度
+//        Log.e(TAG, "状态栏-方法4:" + statusBar);
 
         //View绘制区域
 //        Rect outRect2 = new Rect();
 //        getWindow().findViewById(Window.ID_ANDROID_CONTENT).getDrawingRect(outRect2);
 //        Log.e(TAG, "View绘制区域顶部-错误方法：outRect2:" + outRect2);
 
-        float scale = 1f;
-        Log.d(TAG, "handleBitmap: screenWidth:"+screenWidth+",bitmapWidth:"+bitmapWidth);
-        if (screenWidth > bitmapWidth) {
-            scale = 1f * screenWidth / bitmapWidth;
-        }
-        Log.d(TAG, "handleBitmap: scale:"+scale);
+//        float scale = 1f;
+//        Log.d(TAG, "handleBitmap: screenWidth:"+screenWidth+",bitmapWidth:"+bitmapWidth);
+//        if (screenWidth > bitmapWidth) {
+//            scale = 1f * screenWidth / bitmapWidth;
+//        }
+//        Log.d(TAG, "handleBitmap: scale:"+scale);
+//
+//        matrix.setScale(scale, scale);
+//        Bitmap bitmap2 = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
 
-        matrix.setScale(scale, scale);
-        Bitmap bitmap2 = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
-
-        myImageview.setBitmap(bitmap);
+        myImageview.setImageBitmap(bitmap);
         myImageview.setScrollOutListener(new MyImageview.ScrollOutListener() {
             @Override
             public void onScrollOut() {
